@@ -9,5 +9,8 @@ ENV PHP_ERRORS_STDERR 1
 ENV RUN_SCRIPTS 1
 ENV REAL_IP_HEADER 1
 
+# Automatically run database migrations on boot
+ENV CMD="php artisan migrate --force"
+
 # Expose HTTP port
 EXPOSE 80
