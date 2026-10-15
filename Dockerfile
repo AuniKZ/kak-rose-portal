@@ -1,19 +1,18 @@
 FROM richarvey/nginx-php-fpm:latest
 
-# Copy project files into container
+# Copy application files
 COPY . /var/www/html
 
-# Change working directory
+# Set working directory
 WORKDIR /var/www/html
 
-# Install Composer packages directly during image build
-RUN composer install --no-dev --optimize-autoloader
+# Run composer install with no interaction and no scripts to save memory
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
-# Set image environment variables
+# Configure web server settings
 ENV WEBROOT /var/www/html/public
 ENV PHP_ERRORS_STDERR 1
 ENV RUN_SCRIPTS 1
 ENV REAL_IP_HEADER 1
 
-# Expose HTTP port
 EXPOSE 80
