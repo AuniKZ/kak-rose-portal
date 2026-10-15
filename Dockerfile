@@ -6,9 +6,8 @@ COPY . /var/www/html
 # Set working directory
 WORKDIR /var/www/html
 
-# Install required system dependencies (unzip) then run composer
-RUN apt-get update && apt-get install -y unzip && \
-    composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+# Run composer using the image's built-in binaries
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
 # Configure web server settings
 ENV WEBROOT /var/www/html/public
