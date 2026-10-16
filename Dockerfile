@@ -12,8 +12,8 @@ RUN apk add --no-cache dos2unix && \
         chmod +x /var/www/html/scripts/before_launch.sh; \
     fi
 
-# Install dependencies inside the container
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install dependencies with unlimited Composer memory & no heavy autoloader optimization
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --no-interaction
 
 # Set storage and cache permissions for www-data
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
