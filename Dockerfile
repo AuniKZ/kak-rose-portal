@@ -1,4 +1,4 @@
-FROM richarvey/nginx-php-fpm:php8.2
+FROM richarvey/nginx-php-fpm:latest
 
 WORKDIR /var/www/html
 
@@ -12,7 +12,7 @@ RUN apk add --no-cache dos2unix && \
         chmod +x /var/www/html/scripts/before_launch.sh; \
     fi
 
-# Install dependencies inside the PHP 8.2 container
+# Install dependencies inside the container
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set storage and cache permissions for www-data
