@@ -6,18 +6,18 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Install dos2unix to strip Windows CRLF line endings from bash scripts
-RUN apk add --no-cache dos2unix \
-    && if [ -f /var/www/html/scripts/before_launch.sh ]; then \
-        dos2unix /var/www/html/scripts/before_launch.sh \
-        && chmod +x /var/www/html/scripts/before_launch.sh; \
-       fi
+RUN apk add --no-cache dos2unix && \
+    if [ -f /var/www/html/scripts/before_launch.sh ]; then \
+        dos2unix /var/www/html/scripts/before_launch.sh && \
+        chmod +x /var/www/html/scripts/before_launch.sh; \
+    fi
 
 # Install dependencies inside the PHP 8.2 container
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set storage and cache permissions for www-data
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Set Environment Variables
 ENV WEBROOT /var/www/html/public
