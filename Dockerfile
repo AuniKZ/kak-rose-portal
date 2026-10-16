@@ -12,7 +12,7 @@ RUN apk add --no-cache dos2unix && \
         chmod +x /var/www/html/scripts/before_launch.sh; \
     fi
 
-# Install dependencies with unlimited Composer memory & no heavy autoloader optimization
+# Install dependencies without memory limits or heavy autoloader scanning
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --no-interaction
 
 # Set storage and cache permissions for www-data
