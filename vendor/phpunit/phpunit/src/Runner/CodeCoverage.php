@@ -16,6 +16,7 @@ use function is_subclass_of;
 use function sprintf;
 use function sys_get_temp_dir;
 use DateTimeImmutable;
+use PHPUnit\Event\Emitter;
 use PHPUnit\Event\Facade as EventFacade;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\TextUI\Configuration\CodeCoverageFilterRegistry;
@@ -68,14 +69,20 @@ final class CodeCoverage
     private bool $lastTestContributedToCoverage = false;
     private bool $collectsBranchCoverage        = false;
     private bool $collectsPathCoverage          = false;
+    private readonly Emitter $emitter;
 
     public static function instance(): self
     {
         if (self::$instance === null) {
-            self::$instance = new self;
+            self::$instance = new self(EventFacade::emitter());
         }
 
         return self::$instance;
+    }
+
+    public function __construct(Emitter $emitter)
+    {
+        $this->emitter = $emitter;
     }
 
     public function init(Configuration $configuration, CodeCoverageFilterRegistry $codeCoverageFilterRegistry, bool $extensionRequiresCodeCoverageCollection): CodeCoverageInitializationStatus
@@ -146,7 +153,7 @@ final class CodeCoverage
         $this->warnIfFilterIsNotConfigured($codeCoverageFilterRegistry, $configuration);
 
         if (isset($coverageCacheDirectory) && $configuration->includeUncoveredFiles()) {
-            EventFacade::emitter()->testRunnerStartedStaticAnalysisForCodeCoverage();
+            $this->emitter->testRunnerStartedStaticAnalysisForCodeCoverage();
 
             /** @phpstan-ignore new.internalClass,method.internalClass */
             $statistics = (new CacheWarmer)->warmCache(
@@ -156,7 +163,7 @@ final class CodeCoverage
                 $codeCoverageFilterRegistry->get(),
             );
 
-            EventFacade::emitter()->testRunnerFinishedStaticAnalysisForCodeCoverage(
+            $this->emitter->testRunnerFinishedStaticAnalysisForCodeCoverage(
                 $statistics['cacheHits'],
                 $statistics['cacheMisses'],
             );
@@ -237,7 +244,6 @@ final class CodeCoverage
         assert($this->test !== null);
 
         $time             = $this->timer()->stop()->asSeconds();
-        $status           = TestStatus::Unknown;
         $this->collecting = false;
 
         if ($this->test->status()->isSuccess()) {
@@ -252,7 +258,7 @@ final class CodeCoverage
             if ($result->isFailure()) {
                 assert($result instanceof ValidationFailure);
 
-                EventFacade::emitter()->testTriggeredPhpunitWarning(
+                $this->emitter->testTriggeredPhpunitWarning(
                     $this->test->valueObjectForEvents(),
                     $result->message(),
                 );
@@ -267,7 +273,7 @@ final class CodeCoverage
             if ($result->isFailure()) {
                 assert($result instanceof ValidationFailure);
 
-                EventFacade::emitter()->testTriggeredPhpunitWarning(
+                $this->emitter->testTriggeredPhpunitWarning(
                     $this->test->valueObjectForEvents(),
                     $result->message(),
                 );
@@ -346,6 +352,18 @@ final class CodeCoverage
 
             try {
                 $facade->renderClover($configuration->coverageClover(), 'Clover Coverage');
+
+                $this->codeCoverageGenerationSucceeded($printer);
+            } catch (CodeCoverageException $e) {
+                $this->codeCoverageGenerationFailed($printer, $e);
+            }
+        }
+
+        if ($configuration->hasCoverageJsonl()) {
+            $this->codeCoverageGenerationStart($printer, 'JSONL');
+
+            try {
+                $facade->renderJsonl($configuration->coverageJsonl());
 
                 $this->codeCoverageGenerationSucceeded($printer);
             } catch (CodeCoverageException $e) {
@@ -503,7 +521,7 @@ final class CodeCoverage
         }
 
         foreach ($this->codeCoverage->parseErrors() as $file => $message) {
-            EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
+            $this->emitter->testRunnerTriggeredPhpunitWarning(
                 sprintf(
                     'Cannot parse %s (%s), code coverage for this file is based on raw data reported by the code coverage driver',
                     $file,
@@ -520,7 +538,7 @@ final class CodeCoverage
         }
 
         if (!$codeCoverageFilterRegistry->configured()) {
-            EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
+            $this->emitter->testRunnerTriggeredPhpunitWarning(
                 'No filter is configured, code coverage will not be processed',
             );
 
@@ -539,7 +557,7 @@ final class CodeCoverage
             $paths[] = $file->path();
         }
 
-        EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
+        $this->emitter->testRunnerTriggeredPhpunitWarning(
             sprintf(
                 'Configured source filter (include-path: %s) does not match any files, code coverage will not be processed',
                 implode(', ', $paths),
@@ -583,7 +601,7 @@ final class CodeCoverage
                 $message = 'Code coverage cannot be initialized';
             }
 
-            EventFacade::emitter()->testRunnerTriggeredPhpunitWarning($message);
+            $this->emitter->testRunnerTriggeredPhpunitWarning($message);
         }
     }
 
